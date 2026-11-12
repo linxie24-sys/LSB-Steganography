@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import List
 import base64
 import io
-from PIL import Image
+from PIL import Image as PILImage
 
 from drafter import *
 
@@ -14,9 +14,9 @@ set_site_information(
                     (LSB) steganography.""",
     sources="AI Conversation.pdf",
     planning=["plan.pdf", "design.pdf"],
-    links=["https://github.com/linxie24-sys/https://github.com/linxie24-sys/LSB-Steganography"]
+    links=["https://github.com/linxie24-sys/your-repository"]
 )
-hide_debug_information()
+#hide_debug_information()
 set_website_framed(False)
 
 # ==============================================================================
@@ -81,7 +81,7 @@ def bits_to_text(bits: str) -> str:
     return bytes(bytes_list).decode("utf-8", errors="replace")
 
 
-def image_to_data_url(pil_img: Image.Image) -> str:
+def image_to_data_url(pil_img: PILImage.Image) -> str:
     """
     Converts a Pillow Image object into a Base64 PNG data URI so Drafter's
     Image component can render it directly in the browser without saving files
@@ -95,26 +95,29 @@ def image_to_data_url(pil_img: Image.Image) -> str:
     return f"data:image/png;base64,{encoded_bytes}"
 
 
-def load_image_from_upload(uploaded_data) -> Image.Image:
+def load_image_from_upload(uploaded_data) -> PILImage.Image:
     """
-    Safely parses uploaded file content (bytes or base64 data URI string)
-    into a standard RGB Pillow Image.
+    Safely parses uploaded file content (BytesIO, bytes, file-like object,
+    or base64 data URI string) into a standard RGB Pillow Image.
     """
-    if isinstance(uploaded_data, bytes):
+    if isinstance(uploaded_data, io.BytesIO):
+        raw_bytes = uploaded_data.getvalue()
+    elif hasattr(uploaded_data, "read"):
+        raw_bytes = uploaded_data.read()
+    elif isinstance(uploaded_data, bytes):
         raw_bytes = uploaded_data
     elif isinstance(uploaded_data, str):
-        # Strip data URI header if present (e.g., "data:image/png;base64,...")
         if "," in uploaded_data:
             uploaded_data = uploaded_data.split(",", 1)[1]
         raw_bytes = base64.b64decode(uploaded_data)
     else:
-        raise ValueError("Unsupported file upload format.")
+        raise ValueError(f"Unsupported file upload format: {type(uploaded_data)}")
 
-    img = Picture(io.BytesIO(raw_bytes))
+    img = PILImage.open(io.BytesIO(raw_bytes))
     return img.convert("RGB")
 
 
-def encode_lsb(img: Image.Image, secret_message: str, channel_mode: str) -> Image.Image:
+def encode_lsb(img: PILImage.Image, secret_message: str, channel_mode: str) -> PILImage.Image:
     """
     Embeds `secret_message` into the Least Significant Bits (LSBs) of `img`.
     - If `channel_mode == "RGB"`, uses Red, Green, and Blue channels (3 bits/pixel).
@@ -165,7 +168,7 @@ def encode_lsb(img: Image.Image, secret_message: str, channel_mode: str) -> Imag
     return encoded_img
 
 
-def decode_lsb(img: Image.Image, channel_mode: str) -> str:
+def decode_lsb(img: PILImage.Image, channel_mode: str) -> str:
     """
     Extracts Least Significant Bits from `img` until `DELIMITER` is found.
     """
@@ -298,7 +301,7 @@ def process_encode(
             [
                 Header("Encoding Complete!"),
                 Text("Right-click the image below and choose 'Save Image As...' (must be saved as PNG to preserve LSBs)."),
-                DrafterImage(state.last_encoded_b64, width=350),
+                Image(stego_img, width=350),
                 Text(f"Mode Used: {channel_mode} | Characters Hidden: {len(final_message)}"),
                 LineBreak(),
                 Button("Decode an Image", decode_page),
