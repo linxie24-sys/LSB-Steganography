@@ -13,8 +13,8 @@ set_site_information(
                     hidden messages from encoded files using Least Significant Bit
                     (LSB) steganography.""",
     sources="AI Conversation.pdf",
-    planning=["plan.pdf", "design.pdf"],
-    links=["https://github.com/linxie24-sys/your-repository"]
+    planning=["plandesign.pdf.pdf"],
+    links=["https://github.com/linxie24-sys/LSB-Steganography"]
 )
 #hide_debug_information()
 set_website_framed(False)
